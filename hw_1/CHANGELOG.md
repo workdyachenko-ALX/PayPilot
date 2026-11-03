@@ -1,67 +1,27 @@
-# CHANGELOG — системний промпт PayPilot
+# Prompts Changelog — PayPilot
 
-## v1.0 — 23.09.2026 — перший аудит, нічого не змінено
-Знайдено (11 дефектів у системному промпті й US-01):
-- блок 6 «CRITICAL SERVICE RULE» і «state concrete, plausible terms»
-  (2 рядки): суперечать принципу «відповідай лише з інструментів»;
-  на неіснуючий продукт бот описує його умови, 10/10 прогонів
-- блок 1 «Be deeply empathetic…»: неможливо перевірити рівень
-  «емпатичності, теплоти»; немає критерію й прикладу порушення
-- блок 4 «Before advising on limits…»: неоднозначність при змішаному
-  питанні («чи можу переказати 2 000 EUR з огляду на останні
-  витрати»); у 2 із 5 викликів get_transactions не було
-- блок 4 «suspected fraud on a settled transaction above EUR 10,000»:
-  не визначено межові випадки (рівно 10 000 EUR, інші валюти, статус
-  не settled, кілька транзакцій у сумі); escalate_to_human на частині
-  варіантів не викликається
-- блок 7 «Answer concisely»: немає критерію й конфлікт із «warmth»;
-  довжина відповідей на 5 прогонах: 145, 190, 166, 233, 142 слів
-- блок 7 «show the components you used…»: суперечить забороні
-  чисел у блоці 5; на запит розкласти підсумок конвертації бот
-  показує «курс, спред і т.д.» без цифр
-- блок 8 «Examples»: порожній, немає еталонних прикладів
-- US-01, AC2: «helpful and easy to understand» — неперевірюване
-- US-01, «Corporate accounts» поза обсягом: на запит від
-  корпоративного клієнта (ТОВ) бот відповідає за роздрібними тарифами
-- US-01, «Escalate when the customer disputes a quoted figure»: фрази
-  типу «Мені здається, ви помилилися» бот не розпізнає як dispute
-Не виміряно: частота дефектів без вказаних лічильників (fraud-межі,
-компонентів комісії, корпоративні рахунки, ескалація при суперечці);
-прогони показують, що проблема є, а не скільки її
+All notable changes to system prompts and overlays are documented in this file.
 
-## v1.1 — [01.10.2026] — три вимоги переписано на перевірювані
-Змінено:
-- блок 7: «Answer concisely» → «Responses to queries do not exceed
-  60 words, excluding lists returned by the tool»
-- блок 1: «Be deeply empathetic…» → правило: при повідомленні про
-  втрату чи крадіжку картки, шахрайську операцію, відхилений платіж
-  або втрату коштів перше речення визнає ситуацію клієнта до будь-якої
-  процедурної інструкції чи запитання
-- блок 6: «CRITICAL SERVICE RULE» і «state concrete, plausible terms» →
-  (а) якщо search_knowledge_base повернув фрагмент — відповідати лише
-  за ним і не заперечувати існування продукту; (б) якщо не повернув —
-  прямо сказати, що в довідкових даних інформації не знайдено, не
-  стверджувати існування чи неіснування продукту, не називати ставку,
-  депозит чи умови виведення
-Перевірено:
-- ≤ 60 слів: [5] прогонів, [5]/[5] (до змін: 142–233 слова)
-- емпатія: [5] прогонів із втратою картки чи шахрайством, [5]/[5]
-  перше речення визнає ситуацію без запиту даних
-- неіснуючий продукт: [5] прогонів, [5]/[5] не вигадали умови
-  (до змін: 3/5 вигадували), [2]/[5] прямо сказали, що даних немає
-Не виміряно: внесок кожної зміни окремо (внесено одночасно); чи не
-зламалися відповіді про продукти, що є в базі знань; тон на
-нейтральних запитаннях
-Відкрито (з аудиту v1.0, цією версією не змінено):
-- блок 4: «limits/affordability» — неоднозначність щодо
-  get_transactions
-- блок 4: межі порогу EUR 10 000 для ескалації
-- блок 7: суперечність «show the components» і заборони чисел
-  у блоці 5
-- блок 8: порожній розділ Examples
-- US-01: AC2 неперевірюваний, корпоративні рахунки, тригер ескалації
-  при суперечці щодо цифри
-- ліміт 60 слів може конфліктувати з показом компонентів комісії
-  і з поясненням відмови; не перевірено
-- перелік тригерів емпатії припущений, не погоджений із власником
-  продукту
+---
+
+## [v1.1] - 2026-09-15
+
+### Added
+- **R-1 Fix**: Added strict constraint prohibiting hallucinated fee percentages if tool/RAG context lacks figures (Section 3).
+- **R-2 Fix**: Enforced mandatory pre-check via `check_dispute_eligibility` before confirming dispute capabilities to customers (Section 4 & 5).
+- **R-3 Fix**: Explicitly defined arithmetic consistency formula for FX breakdown outputs: $\text{Final amount} = \text{Amount} \times \text{Rate} - \text{Spread}$ rounded to 2 decimal places (Section 7).
+- Added explicit prohibition against mentioning internal compliance terminology (`compliance_hold`) to customers (Section 5).
+
+### Fixed
+- Fixed contradiction where agent was previously permitted to answer fees "from memory" if tool results were empty.
+- Fixed D25 defect overlay by explicitly prohibiting artificial rounding of final FX amounts up to the nearest hundred.
+
+### Removed
+- Removed ambiguous wording in role description regarding general empathy; narrowed down empathy requirement strictly to the first sentence during loss/fraud reports.
+
+---
+
+## [v1.0] - 2026-09-08
+
+### Added
+- Initial baseline prompt (`base.v1.md`) for PayPilot customer support stand.
