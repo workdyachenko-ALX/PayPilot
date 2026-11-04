@@ -15,7 +15,7 @@
 
 | # | Було | Стало | Спостережуваний вихід | Критерій | Приклад порушення |
 | --- | --- | --- | --- | --- | --- |
-| **R-1** | *«If a figure is not present in a tool result or a retrieved fragment, state what you know from memory or general knowledge.»* | If fee figures or exact policy rates are not present in tool outputs or retrieved context, state inability to provide exact figures and offer general tariff guidance without inventing numbers. | Text of the response regarding transfer or service fees. | Absence of any specific numeric fee percentages not present in tool/RAG context. | *«The SWIFT transfer fee is 1.5% of the amount sent.»* (when no tool/context specified 1.5%) |
+| **R-1** | *«Always state the exact total fee amount directly to the user in the response instead of referring them to tariff schedules or documentation.»* | If fee figures or exact calculation parameters are not present in tool outputs or retrieved context, state the inability to calculate the exact fee and provide the tariff formula without generating hallucinated numbers. | Text of the response regarding transfer or service fees. | Absence of any specific numeric fee percentages/amounts not present in tool/RAG context. | *«The SWIFT transfer fee is 1.5% of the amount sent.»* (when no tool/context specified 1.5%) |
 | **R-2** | *«Check eligibility window before confirming dispute capability to user.»* | Before stating that a transaction can be disputed, compute eligibility deadline according to the reason code and compare against reference clock. If window is expired, explicitly refuse dispute creation. | Decision text regarding transaction dispute capability. | Binary match between agent eligibility statement and backend rules engine output (`eligible: false`). | *«Yes, TX-0402 is still within the dispute window, and you can file it today. The deadline is October 12, 2026.»* (when deadline expired on September 12) |
 | **R-3** | *«Provide a clear breakdown for FX calculations.»* | The reported `Final amount` in currency conversion quotes must strictly equal $( \text{Amount} \times \text{Rate} - \text{Spread} )$, rounded to exactly two decimal places. | Final amount string in the conversion quote breakdown. | Strict mathematical identity between final amount and the subtraction of calculated components. | *«Gross amount: 6,521.74 USD. Tier 2 spread: 58.70 USD. Final amount: 6,500 USD»* (instead of $6,463.04\text{ USD}$) |
 
@@ -71,10 +71,10 @@
 | Поріг | Хибних відповідей зловлено (`lesson-02`) | Правильних відповідей зупинено (`clean`) |
 | --- | --- | --- |
 | **0.7** | **13 із 18** (ловить більшість сбоїв генерації) | **7 із 24** (пропускає ~71% справних релізів) |
-| **0.8** | **16 із 18** (ловить майже всі сбої) | **15 із 24** (блокує ~62.5% справних релізів) |
-| **0.9** | **18 із 18** (ловить 100% сбоїв) | **22 із 24** (блокує ~91.7% справних релізів) |
+| **0.8** | **16 із 18** (ловить майже всі сбої) | **10 із 24** (блокує ~41.7% справних релізів) |
+| **0.9** | **17 із 18** (ловить майже 100% сбоїв) | **16 із 24** (блокує ~66.7% справних релізів) |
 
-**Обрано:** Поріг **0.70**. При порозі 0.70 система виловлює 13 із 18 дефектних відповідей на `lesson-02`, зупиняючи лише 7 із 24 правильних відповідей на `clean`. Під мандатом **Ship it** підвищення порогу до 0.80 чи 0.90 неприйнятне, оскільки воно блокує від 62% до 91% коректних релізів через природний шум LLM-судді. Фінансові ризики повністю компенсуються детермінованою **Доменною коректністю** з порогом **1.00**.
+**Обрано:** Поріг **0.70**. При порозі 0.70 система виловлює 13 із 18 дефектних відповідей на `lesson-02`, зупиняючи лише 7 із 24 правильних відповідей на `clean`. Під мандатом **Ship it** підвищення порогу до 0.80 (зупиняє 10 з 24) чи 0.90 (зупиняє 16 з 24) є неприйнятним, оскільки воно безпідставно блокує від 42% до 67% коректних збірок через природний шум LLM-судді. Фінансові ризики повністю компенсуються детермінованою **Доменною коректністю** з порогом **1.00**.
 
 ---
 
@@ -91,9 +91,9 @@
 
 | Частота | Що входить | Критерій поділу | Ціна |
 | --- | --- | --- | --- |
-| **Кожен merge (блокує)** | **Доменна коректність** (всі 13 кейсів) + **3 Smoke-кейси** LLM-метрики (`C-01`, `C-03`, `C-05`) | **Детерміноване, дешеве, критичне для мандата.** Перевірка коду оракула зайнята $<30$ сек, не має шуму та блокує баги логіки. | **~ $0.004** / PR ($<30$ сек) |
-| **Nightly** | **Повний датасет** (13 кейсів), всі 4 метрики, **3 прогони** (`--runs 3`) | **Недетерміноване і дороге.** Запускається вночі, фіксує дрейф моделей та ймовірнісні дефекти (`D05`, `D25`). | **~ $0.22** / прогін (~6 хв) |
-| **Перед релізом** | **Повний датасет** (3 прогони) + свіжий **Baseline** на `clean` (`--baseline-runs 2`) | **Фінальна верифікація.** Оправдано високою ціною помилки релізу перед клієнтами. | **~ $0.36** / прогін (~9 хв) |
+| **Кожен merge (блокує)** | **Доменна коректність** (всі 13 кейсів) + **3 Smoke-кейси** LLM-метрики (`C-01`, `C-03`, `C-05`) | **Детерміноване, дешеве, критичне для мандата.** Перевірка коду оракула займає $<30$ сек, не має шуму та блокує баги логіки. | **~ $0.005** / PR ($<30$ сек) |
+| **Nightly** | **Повний датасет** (13 кейсів), всі 4 метрики, **3 прогони** (`--runs 3`) | **Недетерміноване і дороге.** Запускається вночі, фіксує дрейф моделей та ймовірнісні дефекти (`D05`, `D25`). | **~ $0.26** / прогін (~6 хв) |
+| **Перед релізом** | **Повний датасет** (3 прогони) + свіжий **Baseline** на `clean` (`--baseline-runs 2`) | **Фінальна верифікація.** Оправдано високою ціною помилки релізу перед клієнтами. | **~ $0.26** / прогін (~6 хв) |
 
 ---
 
@@ -120,19 +120,20 @@
 | Що | Значення | Звідки |
 | --- | --- | --- |
 | **Кількість викликів моделі** | **626** викликів (170 викликів агента + 456 викликів судді) | Звіт прогону `l02-clean-lesson-02-20261103-190418.json` |
-| **Середня довжина виклику, токенів** | **7 500** input / **450** output (агент); **1 500** input / **150** output (суддя) | Сирий JSON звіт |
+| **Фактичні токени агента** | **542 085** input токенів / **48 734** output токенів (≈ $0.08 USD) | Поля `agent` у JSON-звіті |
+| **Вартість судді** | **$0.18 USD** | Сума за полем `cost` у JSON-звіті |
 | **Прайс (Claude Haiku 5.5)** | **$0.10 / 1M** input токенів, **$0.50 / 1M** output токенів | Офіційний прайс Anthropic (Haiku 5.5) |
-| **Ціна одного повного прогону** | **~ $0.22 USD** | Розрахунок за токенами прогону |
-| **Ціна за місяць при частоті CI** | **~ $5.72 USD / міс** | Merge Gate ($0.88) + 22 Nightly-прогони ($4.84) |
+| **Ціна одного повного прогону** | **~ $0.26 USD** ($0.08 агент + $0.18 суддя) | Розрахунок зі звіту прогону |
+| **Ціна за місяць при частоті CI** | **~ $6.82 USD / міс** | Merge Gate ($1.10) + 22 Nightly-прогони ($5.72) |
 
 ### Деталізований розрахунок вартості:
 
 1. **Ціна одного повного прогону (Baseline x2 + Lesson-02 x3):**
-   * **Input tokens:** $(170 \times 7\,500) + (456 \times 1\,500) = 1\,275\,000 + 684\,000 = 1\,959\,000 \text{ tokens} \times \$0.10 / 1\text{M} = \$0.196$
-   * **Output tokens:** $(170 \times 450) + (456 \times 150) = 76\,500 + 68\,400 = 144\,900 \text{ tokens} \times \$0.50 / 1\text{M} = \$0.072$
-   * **Сумарно за 1 повний прогін:** **~ $0.22 USD**
+   * **Агент:** $(542\,085 \times \$0.10 / 1\text{M}) + (48\,734 \times \$0.50 / 1\text{M}) = \$0.0542 + \$0.0244 = \$0.0786 \approx \$0.08\text{ USD}$.
+   * **Суддя:** $\$0.18\text{ USD}$ (за суммарним полем `cost` в оцінках).
+   * **Сумарно за 1 повний прогін:** $\$0.08 + \$0.18 = \mathbf{\$0.26\text{ USD}}$.
 
 2. **Місячний бюджет CI/CD (Команда 5 інженерів, 10 PR/день = 220 PR/міс, 22 робочих дні):**
-   * **PR Merge Gate:** 220 PR × 3 smoke-кейси (12 викликів LLM на PR @ ~$0.004) = **$0.88 / міс** (Доменна коректність безкоштовна).
-   * **Nightly Runs:** 22 ночні прогони × $0.22 = **$4.84 / міс**.
-   * **Загальний місячний бюджет:** **$0.88 + $4.84 = $5.72 USD / місяць**.
+   * **PR Merge Gate:** 220 PR × 3 smoke-кейси (пропорційна вартість $\approx \$0.005$ за PR) = **$1.10 / міс** (Доменна коректність безкоштовна).
+   * **Nightly Runs:** 22 ночні прогони × $0.26 = **$5.72 / міс**.
+   * **Загальний місячний бюджет:** **$1.10 + $5.72 = $6.82 USD / місяць**.
